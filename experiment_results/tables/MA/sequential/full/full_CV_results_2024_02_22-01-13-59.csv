@@ -1,0 +1,11 @@
+Train Set,Test Set,Target,RMSE
+both,both,%toc,2.982672702288385
+both,both,mbt,0.11834298286927918
+both,lvid,%toc,3.6944700749262553
+both,lvid,mbt,0.07032889117820482
+both,svid,%toc,1.4455463427276496
+both,svid,mbt,0.0495374084282227
+lvid,lvid,%toc,3.4468893845276525
+lvid,lvid,mbt,0.10471524405201009
+svid,svid,%toc,1.0483346216849778
+svid,svid,mbt,0.06946023615293366
