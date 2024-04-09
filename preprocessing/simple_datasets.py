@@ -25,8 +25,6 @@ from torch import nn, optim
 from torch.utils.data import Subset
 from sklearn.preprocessing import StandardScaler
 
-import datasets_1 as datasets
-
 import os
 import re
 from sklearn.model_selection import GridSearchCV
@@ -1827,7 +1825,7 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
             else:
                 return "set param options: full, test,train"
         elif target == "%TOC":
-            svid_o = datasets.load_SVID_other(keep_all=True)
+            svid_o = pd.read_csv("../data/tabular/SVID_TOC.csv")
             lvid_o = pd.read_excel('../data/LVID_bulk_geochem.xlsx')
             # Apply the function to each column name: LVID lower case
             lvid_o.columns = [clean_column_name(col) for col in lvid_o.columns]
@@ -1965,7 +1963,11 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
         full_SVID = []
 
         ## Images
-        load_and_display_images('img_data/SVID',full_SVID, "SVID")
+        current_working_directory = os.getcwd()
+
+        # print output to the console
+        print(current_working_directory)
+        load_and_display_images('../data/img_data/SVID',  full_SVID, "SVID")
         ## reverse = False because 1B-7B seems darkest so would make sense for it to be on the bottom
         full_SVID.sort(key=sortimg,reverse=False)
 
@@ -1999,7 +2001,7 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
                 return "set param options: full, test,train"
 
         elif target == "%TOC":
-            svid_o = datasets.load_SVID_other(keep_all=True)
+            svid_o = pd.read_csv("../data/tabular/SVID_TOC.csv")
 
             svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,depths,sources = attach_labels(target, svid_o, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
 
