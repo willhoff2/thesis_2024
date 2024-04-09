@@ -284,7 +284,9 @@ def transform_image(filepath, feature_extractor = None, read = True, transform =
 def crop_svid(display = False, do_print = False, return_full = False):
     full_SVID = []
 
-    load_and_display_images('img_data/SVID',full_SVID, "SVID")
+    #### Update here with local path for image directory #####
+    image_dir = "/Users/willhoff/Desktop/thesis_2024/data/img_data/SVID"
+    load_and_display_images(image_dir ,full_SVID, "SVID")
     full_SVID.sort(key=sortimg,reverse=False)
  
     cropped_SVID = []
@@ -1746,6 +1748,10 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
         sediment_width: width of image slices. Default is 5 cm        
     set:
     '''
+
+    ### CHANGE LOCAL DATA DIR HERE
+        ## Probably should make a referential way to do this
+    local_data_file = "/Users/willhoff/Desktop/thesis_2024/data/tabular/SVID_TOC.csv"
     if lake == "both":
 
         full_SVID = []
@@ -1772,13 +1778,13 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
             lvid_b.rename(columns={'mbt\'-5me': "MBT"}, errors="raise", inplace=True) 
 
             ## Figure out how to scale values together
-            lvid_pixel_values_tensor, lvid_labels_tensor, lvid_scaler,Ldepths, Lsource = attach_labels(target, lvid_b, full_LVID, "cum_depth", "LVID", scaled=scaled, sediment_width = sediment_width)
-            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,Sdepths, Ssource = attach_labels(target, svid_b, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
+            lvid_pixel_values_tensor, lvid_labels_tensor, lvid_scaler,Ldepths, Lsource, Lindices = attach_labels(target, lvid_b, full_LVID, "cum_depth", "LVID", scaled=scaled, sediment_width = sediment_width)
+            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,Sdepths, Ssource, Sindices = attach_labels(target, svid_b, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
 
             ## If sequential: maybe move to create dataset somehow??
             if not random:
-                lvid_dataset = CustomDataset(lvid_pixel_values_tensor, lvid_labels_tensor, Ldepths, Lsource)
-                svid_dataset = CustomDataset(svid_pixel_values_tensor, svid_labels_tensor, Sdepths, Ssource)
+                lvid_dataset = CustomDataset(Lindices, lvid_pixel_values_tensor, lvid_labels_tensor, Ldepths, Lsource)
+                svid_dataset = CustomDataset(Sindices,svid_pixel_values_tensor, svid_labels_tensor, Sdepths, Ssource)
                 Lsplit_idx = int((1-test_size) * len(lvid_labels_tensor))
                 Ssplit_idx = int((1-test_size) * len(svid_labels_tensor))
                 Ltrain_indices = list(range(Lsplit_idx))
@@ -1804,14 +1810,16 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
                 
             img_tensor = torch.cat((lvid_labels_tensor,svid_pixel_values_tensor))
             labels_tensor = torch.cat((lvid_labels_tensor,svid_labels_tensor))
-
+            
             ## Correct way to append??
             depths = np.append(Ldepths,Sdepths)
 
             sources = np.append(Lsource, Ssource)
 
+            indices = np.append(Lindices, Sindices)
+
             ## train_loader, val_loader, scaler 
-            train_loader, val_loader, scaler  = create_dataset(img_tensor, labels_tensor,depths,sources, random=random)
+            train_loader, val_loader, scaler  = create_dataset(img_tensor, labels_tensor,depths,sources, indices, random=random)
             if set == "full":
                 if return_labels:
                     return train_loader, val_loader, scaler,labels_tensor
@@ -1830,18 +1838,18 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
             else:
                 return "set param options: full, test,train"
         elif target == "%TOC":
-            svid_o = pd.read_csv("../data/tabular/SVID_TOC.csv")
+            svid_o = pd.read_csv(local_data_file)
             lvid_o = pd.read_excel('../data/LVID_bulk_geochem.xlsx')
             # Apply the function to each column name: LVID lower case
             lvid_o.columns = [clean_column_name(col) for col in lvid_o.columns]
             
-            lvid_pixel_values_tensor, lvid_labels_tensor, lvid_scaler,Ldepths, Lsource  = attach_labels("%toc", lvid_o, full_LVID, "cum_depth", "LVID", scaled=scaled, sediment_width = sediment_width)
-            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler, Sdepths, Ssource  = attach_labels(target, svid_o, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
+            lvid_pixel_values_tensor, lvid_labels_tensor, lvid_scaler,Ldepths, Lsource, Lindices  = attach_labels("%toc", lvid_o, full_LVID, "cum_depth", "LVID", scaled=scaled, sediment_width = sediment_width)
+            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler, Sdepths, Ssource, Sindices  = attach_labels(target, svid_o, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
 
             ## If sequential:
             if not random:
-                lvid_dataset = CustomDataset(lvid_pixel_values_tensor, lvid_labels_tensor, Ldepths, Lsource)
-                svid_dataset = CustomDataset(svid_pixel_values_tensor, svid_labels_tensor, Sdepths, Ssource)
+                lvid_dataset = CustomDataset(Lindices,lvid_pixel_values_tensor, lvid_labels_tensor, Ldepths, Lsource)
+                svid_dataset = CustomDataset(Sindices,svid_pixel_values_tensor, svid_labels_tensor, Sdepths, Ssource)
                 Lsplit_idx = int((1-test_size) * len(lvid_labels_tensor))
                 Ssplit_idx = int((1-test_size) * len(svid_labels_tensor))
                 Ltrain_indices = list(range(Lsplit_idx))
@@ -1874,9 +1882,10 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
             depths = np.append(Ldepths,Sdepths)
 
             sources = np.append(Lsource, Ssource)
+            indices = np.append(Lindices, Sindices)
 
             ## train_loader, val_loader, scaler 
-            train_loader, val_loader, scaler  = create_dataset(img_tensor, labels_tensor,depths,sources, random=random)
+            train_loader, val_loader, scaler  = create_dataset(img_tensor, labels_tensor,depths,sources, indices, random=random)
             if set == "full":
                 if return_labels:
                     return train_loader, val_loader, scaler,labels_tensor
@@ -1914,10 +1923,10 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
             lvid_b.rename(columns={'mbt\'-5me': "MBT"}, errors="raise", inplace=True) 
 
             ## Figure out how to scale values together
-            lvid_pixel_values_tensor, lvid_labels_tensor, lvid_scaler,depths,sources = attach_labels(target, lvid_b, full_LVID, "cum_depth", "LVID", scaled=scaled, sediment_width = sediment_width)
+            lvid_pixel_values_tensor, lvid_labels_tensor, lvid_scaler,depths,sources, indices = attach_labels(target, lvid_b, full_LVID, "cum_depth", "LVID", scaled=scaled, sediment_width = sediment_width)
 
             ## train_loader, val_loader, scaler 
-            train_loader, val_loader, scaler  = create_dataset(lvid_pixel_values_tensor, lvid_labels_tensor,depths,sources, random=random)
+            train_loader, val_loader, scaler  = create_dataset(lvid_pixel_values_tensor, lvid_labels_tensor,depths,sources, indices, random=random)
             if set == "full":
                 if return_labels:
                     return train_loader, val_loader, scaler,lvid_labels_tensor
@@ -1940,10 +1949,10 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
             # Apply the function to each column name: LVID lower case
             lvid_o.columns = [clean_column_name(col) for col in lvid_o.columns]
 
-            lvid_pixel_values_tensor, lvid_labels_tensor, lvid_scaler,depths,sources = attach_labels("%toc", lvid_o, full_LVID, "cum_depth", "LVID",scaled=scaled, sediment_width = sediment_width)
+            lvid_pixel_values_tensor, lvid_labels_tensor, lvid_scaler,depths,sources, indices = attach_labels("%toc", lvid_o, full_LVID, "cum_depth", "LVID",scaled=scaled, sediment_width = sediment_width)
 
             ## train_loader, val_loader, scaler 
-            train_loader, val_loader, scaler  = create_dataset(lvid_pixel_values_tensor, lvid_labels_tensor,depths,sources, random=random)
+            train_loader, val_loader, scaler  = create_dataset(lvid_pixel_values_tensor, lvid_labels_tensor,depths,sources, indices, random=random)
             if set == "full":
                 if return_labels:
                     return train_loader, val_loader, scaler,lvid_labels_tensor
@@ -1980,10 +1989,10 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
             with open(os.path.join(DATA_DIR, "SVID_brGDGTs.csv"), "r") as inf:
                 svid_b = pd.read_csv(inf)
 
-            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,depths, sources = attach_labels(target, svid_b, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
+            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,depths, sources, indices = attach_labels(target, svid_b, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
 
             ## train_loader, val_loader, scaler 
-            train_loader, val_loader, scaler  = create_dataset(svid_pixel_values_tensor, svid_labels_tensor,depths,sources, random=random)
+            train_loader, val_loader, scaler  = create_dataset(svid_pixel_values_tensor, svid_labels_tensor,depths,sources, indices, random=random)
             if set == "full":
                 if return_labels:
                     return train_loader, val_loader, scaler,svid_labels_tensor
@@ -2003,12 +2012,12 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
                 return "set param options: full, test,train"
 
         elif target == "%TOC":
-            svid_o = pd.read_csv("../data/tabular/SVID_TOC.csv")
+            svid_o = pd.read_csv(local_data_file)
 
-            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,depths,sources = attach_labels(target, svid_o, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
+            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,depths,sources, indices = attach_labels(target, svid_o, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
 
             ## train_loader, val_loader, scaler 
-            train_loader, val_loader, scaler  = create_dataset(svid_pixel_values_tensor, svid_labels_tensor, depths,sources, random=random)
+            train_loader, val_loader, scaler  = create_dataset(svid_pixel_values_tensor, svid_labels_tensor, depths,sources, indices, random=random)
             if set == "full":
                 if return_labels:
                     return train_loader, val_loader, scaler, svid_labels_tensor
