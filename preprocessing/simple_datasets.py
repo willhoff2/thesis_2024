@@ -46,6 +46,11 @@ InteractiveShell.ast_node_interactivity = "all"
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings('default')
 
+#current_working_directory = os.getcwd()
+
+# print output to the console
+#print(current_working_directory)
+
 
 
 # Function to clean column names
@@ -1962,12 +1967,9 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
 
         full_SVID = []
 
-        ## Images
-        current_working_directory = os.getcwd()
-
-        # print output to the console
-        print(current_working_directory)
-        load_and_display_images('../data/img_data/SVID',  full_SVID, "SVID")
+        ## Images --> change this dir for different local structure
+        image_dir = "/Users/willhoff/Desktop/thesis_2024/data/img_data/SVID"
+        load_and_display_images(image_dir,  full_SVID, "SVID")
         ## reverse = False because 1B-7B seems darkest so would make sense for it to be on the bottom
         full_SVID.sort(key=sortimg,reverse=False)
 
