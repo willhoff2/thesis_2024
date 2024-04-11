@@ -46,10 +46,9 @@ InteractiveShell.ast_node_interactivity = "all"
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings('default')
 
-#current_working_directory = os.getcwd()
-
-# print output to the console
-#print(current_working_directory)
+## Change to Local file paths!
+local_SVID_image_dir = "/Users/willhoff/Desktop/thesis_2024/data/img_data/SVID"
+local_SVID_toc_path = "/Users/willhoff/Desktop/thesis_2024/data/tabular/SVID_TOC.csv"
 
 
 
@@ -283,10 +282,7 @@ def transform_image(filepath, feature_extractor = None, read = True, transform =
 # Left, top, right, bottom
 def crop_svid(display = False, do_print = False, return_full = False):
     full_SVID = []
-
-    #### Update here with local path for image directory #####
-    image_dir = "/Users/willhoff/Desktop/thesis_2024/data/img_data/SVID"
-    load_and_display_images(image_dir ,full_SVID, "SVID")
+    load_and_display_images(local_SVID_image_dir ,full_SVID, "SVID")
     full_SVID.sort(key=sortimg,reverse=False)
  
     cropped_SVID = []
@@ -852,7 +848,7 @@ def attach_labels(target,sample_df, images, depth_col, lake_name, scaled=False, 
                 ## changing from section_data[depth_col].mean() to midpoint of image
                 chunks.append(chunk) 
                 if (end_pixel + chunk_size) > full_end:
-                    depth_value = (full_end - ((end_pixel - chunk_size) * p_to_cm / 2))
+                    depth_value = full_depth + (((full_end - (end_pixel - chunk_size)) * p_to_cm) / 2)
                     depths.append(depth_value)
                 else: 
                     depth_value = full_depth + (sediment_width/2)
@@ -889,11 +885,13 @@ def attach_labels(target,sample_df, images, depth_col, lake_name, scaled=False, 
     labels_known = labels_array[non_nan_mask]
     
     # Assuming pixel_values already a tensor in the shape [num_images, channels, height, width]
-    pixel_values_tensor = transform_images(images_known)
+    feature_extractor = ViTImageProcessor.from_pretrained('facebook/deit-tiny-patch16-224')
+    pixel_values_tensor = transform_images(images_known,feature_extractor)
     labels_tensor = torch.tensor(labels_known, dtype=torch.float32)
     
     ## Formerly returned inputs: return pixel_values_tensor, labels_tensor, inputs, scaler, np.array(depths), np.array(sources)
-    return images_known, labels_tensor, scaler, np.array(depths), np.array(sources), np.array(indices)
+    ## Switch back to pixel_values_tensor from images_known, may have to switch this back later
+    return pixel_values_tensor, labels_tensor, scaler, np.array(depths), np.array(sources), np.array(indices)
 
 def build_and_save_MA(target, sample_df, images, depth_col, lake_name, scaled=False, sediment_width=5, test_size=0.2, random=True, random_state=2, prediction_size = 1):
     '''
@@ -1749,27 +1747,13 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
     set:
     '''
 
-    ### CHANGE LOCAL DATA DIR HERE
-        ## Probably should make a referential way to do this
-    local_data_file = "/Users/willhoff/Desktop/thesis_2024/data/tabular/SVID_TOC.csv"
+    targer = target.lower()
     if lake == "both":
 
-        full_SVID = []
-        full_LVID = [] 
+        cropped_LVID, full_LVID = crop_lvid(return_full=True)
+        cropped_SVID, full_SVID = crop_svid(return_full=True)
 
-        ## Images
-        load_and_display_images('img_data/SVID',full_SVID, "SVID")
-        ## reverse = False because 1B-7B seems darkest so would make sense for it to be on the bottom
-        full_SVID.sort(key=sortimg,reverse=False)
-
-        load_and_display_images('img_data/LVID',full_LVID, "LVID")
-        ## reverse = False because 1B-7B seems darkest so would make sense for it to be on the bottom
-        full_LVID.sort(key=sortimg,reverse=False)
-
-        cropped_LVID = crop_lvid(full_LVID)
-        cropped_SVID = crop_svid(full_SVID)
-
-        if target == "MBT":
+        if target == "mbt":
             DATA_DIR = "../data/"
             with open(os.path.join(DATA_DIR, "SVID_brGDGTs.csv"), "r") as inf:
                 svid_b = pd.read_csv(inf)
@@ -1837,8 +1821,8 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
                     return train_loader, scaler
             else:
                 return "set param options: full, test,train"
-        elif target == "%TOC":
-            svid_o = pd.read_csv(local_data_file)
+        elif target == "%toc":
+            svid_o = pd.read_csv(local_SVID_toc_path)
             lvid_o = pd.read_excel('../data/LVID_bulk_geochem.xlsx')
             # Apply the function to each column name: LVID lower case
             lvid_o.columns = [clean_column_name(col) for col in lvid_o.columns]
@@ -1908,16 +1892,10 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
             return "target param options: MBT, %TOC"
     elif lake == "lvid":
 
-        full_LVID = [] 
-
-        load_and_display_images('img_data/LVID',full_LVID, "LVID")
-        ## reverse = False because 1B-7B seems darkest so would make sense for it to be on the bottom
-        full_LVID.sort(key=sortimg,reverse=False)
-
-        cropped_LVID = crop_lvid(full_LVID)
+        cropped_LVID, full_LVID = crop_lvid(return_full=True)
         
 
-        if target == "MBT":
+        if target == "mbt":
             lvid_b = pd.read_excel('../data/HEID_LVID_brGDGTs.xlsx','LVID brGDGTs')
             lvid_b.columns = [clean_column_name(col) for col in lvid_b.columns]
             lvid_b.rename(columns={'mbt\'-5me': "MBT"}, errors="raise", inplace=True) 
@@ -1974,22 +1952,14 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
             return "target param options: MBT, %TOC"
     elif lake == "svid":
 
-        full_SVID = []
+        cropped_SVID, full_SVID = crop_svid(return_full=True)
 
-        ## Images --> change this dir for different local structure
-        image_dir = "/Users/willhoff/Desktop/thesis_2024/data/img_data/SVID"
-        load_and_display_images(image_dir,  full_SVID, "SVID")
-        ## reverse = False because 1B-7B seems darkest so would make sense for it to be on the bottom
-        full_SVID.sort(key=sortimg,reverse=False)
-
-        cropped_SVID = crop_svid(full_SVID)
-
-        if target == "MBT":
+        if target == "mbt":
             DATA_DIR = "../data/"
             with open(os.path.join(DATA_DIR, "SVID_brGDGTs.csv"), "r") as inf:
                 svid_b = pd.read_csv(inf)
 
-            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,depths, sources, indices = attach_labels(target, svid_b, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
+            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,depths, sources, indices = attach_labels(target, svid_b, full_SVID, "sediment_depth", "SVID", scaled=scaled, sediment_width = sediment_width)
 
             ## train_loader, val_loader, scaler 
             train_loader, val_loader, scaler  = create_dataset(svid_pixel_values_tensor, svid_labels_tensor,depths,sources, indices, random=random)
@@ -2011,10 +1981,10 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
             else:
                 return "set param options: full, test,train"
 
-        elif target == "%TOC":
-            svid_o = pd.read_csv(local_data_file)
+        elif target == "%toc":
+            svid_o = pd.read_csv(local_SVID_toc_path)
 
-            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,depths,sources, indices = attach_labels(target, svid_o, full_SVID, "Sediment_Depth", "SVID", scaled=scaled, sediment_width = sediment_width)
+            svid_pixel_values_tensor, svid_labels_tensor, svid_scaler,depths,sources, indices = attach_labels(target, svid_o, full_SVID, "sediment_depth", "SVID", scaled=scaled, sediment_width = sediment_width)
 
             ## train_loader, val_loader, scaler 
             train_loader, val_loader, scaler  = create_dataset(svid_pixel_values_tensor, svid_labels_tensor, depths,sources, indices, random=random)
@@ -2042,6 +2012,7 @@ def load_data(target, lake = "both", scaled = False, set = "full", percentage = 
     else:
         return "lake param options: lvid, svid, both"
     
+## May need to put disjoint here signifying whether to transform or in attach_labels
 def create_dataset(images, labels, depths, sources, indices, scaled=False, test_size = 0.2, random =True):
     
     ## Previously scaling was being done as scaled=True. Fixed now 1-24-24
@@ -2060,7 +2031,8 @@ def create_dataset(images, labels, depths, sources, indices, scaled=False, test_
         labels = scaled_labels.flatten()
     
     ## Use VIT --> moved back out
-    # images = transform_images(images)
+    ## Disjoint
+    #images = transform_images(images)
 
     # Create the custom dataset
     dataset = CustomDataset(indices, images, labels, depths, sources)
