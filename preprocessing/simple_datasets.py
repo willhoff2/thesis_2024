@@ -1290,21 +1290,28 @@ def get_fold_test_data(lake_name, target, fold):
     depth_col = "sediment_depth"
     
     lake_name = lake_name.upper()
-    data_path = f'MA_data/{lake_name}/data/{lake_name}_dataset.csv'
+    #data_path = f'MA_data/{lake_name}/data/{lake_name}_dataset.csv' --> prev dependency
+    if lake_name == "SVID":
+        data_path = "/Users/willhoff/Desktop/thesis_2024/data/MA_data/SVID/data/SVID_dataset.csv"
+    else:
+        return "Not implemented"
+    
     df = pd.read_csv(data_path)
 
     if target == 'mbt':
-        test_1cm_df = pd.read_csv(f"../data/{lake_name}_brGDGTs.csv")
+        return "not implemented"
+        # test_1cm_df = pd.read_csv(f"../data/{lake_name}_brGDGTs.csv")
     else:
-        test_1cm_df = pd.read_csv(f"../data/{lake_name}_other.csv")
+        test_1cm_df = pd.read_csv(local_SVID_toc_path)
+        # test_1cm_df = pd.read_csv(f"../data/{lake_name}_other.csv")
 
     fold_length = int(df.shape[0]/5)
 
     next_start = fold * fold_length
     next_end = next_start + fold_length
 
-    test_data_folder = f"/Users/willhoff/Desktop/research_23_24/paleoclimate/will_sandbox/MA_data/{lake_name}/fold_{fold}/test_data/"
-    test_img_save_dir = f"/Users/willhoff/Desktop/research_23_24/paleoclimate/will_sandbox/MA_data/{lake_name}/fold_{fold}/test_chunks/"
+    test_data_folder = f"/Users/willhoff/Desktop/thesis_2024/testing"
+    test_img_save_dir = f"/Users/willhoff/Desktop/thesis_2024/testing"
     os.makedirs(test_data_folder, exist_ok=True)
     os.makedirs(test_img_save_dir, exist_ok = True)
 
@@ -1492,7 +1499,8 @@ def get_train_fold_data(lake_name, target, fold, feature_extractor, transform = 
     fold: Specifies which fold as test set. [1,2,3,4,5] (int)
     '''
 
-    data_path = f'MA_data/{lake_name}/data/{lake_name}_dataset.csv'
+    #data_path = f'MA_data/{lake_name}/data/{lake_name}_dataset.csv'
+    data_path = "/Users/willhoff/Desktop/thesis_2024/data/MA_data/SVID/data/SVID_dataset.csv"
     df = pd.read_csv(data_path)
     fold_length = int(df.shape[0]/5)
     next_start = fold * fold_length
