@@ -14,3 +14,5 @@ It is broken down as such:
 
 
 The rest of the data for the scripts are forthcoming; however, only SVID %TOC data is available until the publication of the rest.
+
+The MA Data experiments can not be run until the entirety of the data is made available; however, the scripts and functions are still present and can be modified to be ran with the current state of the data.
